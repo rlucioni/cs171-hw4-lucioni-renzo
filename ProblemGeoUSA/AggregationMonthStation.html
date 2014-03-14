@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script src="http://d3js.org/queue.v1.min.js"></script>
+<script src="http://d3js.org/topojson.v1.min.js"></script>
+<script type="text/javascript" src="../jquery-1.11.0.min.js"></script>
+<script src="../libs/FileSaver.js"></script>
+
+<div id="vis"></div>
+
+
+<script>
+
+
+    d3.json("../data/allData2003_2004.json",function(error,data){
+        console.log(data);
+
+        var allDates = [];
+        var timeParser = d3.time.format("%b %-d, %Y %X %p");
+        
+		// add your source code
+
+        saveToFile(reducedDataSet,"reducedMonthStationHour2003_2004.json")
+
+
+
+    })
+
+    var saveToFile = function(object, filename){
+        var blob, blobText;
+        blobText = [JSON.stringify(object)];
+        blob = new Blob(blobText, {
+            type: "text/plain;charset=utf-8"
+        });
+        saveAs(blob, filename);
+    }
+
+
+</script>
+
+
+</body>
+</html>
