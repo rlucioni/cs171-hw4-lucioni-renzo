@@ -98,7 +98,7 @@ This file is 100MB in size and is not well-suited for a D3 visualization project
 
 <img src="img/data_structure.png" width="300" style="display: block; margin-left:auto; margin-right:auto;"/>
 
-Here's an example of what this looks like in JSON. Note that numbers are not correct!
+Here's an example of what this looks like in JSON. *Note that numbers are not correct!*
 
 ```javascript
     "690150": {
@@ -224,7 +224,7 @@ The HTML file contains two `<div>` elements that you can use for your main visua
 
 
 ## Voila!
-Use this image as guidance. The "Pulaski" station is selected for showing data in detail view. 
+Use this image as guidance. The "Pulaski" station is selected for showing data in detail view. *The example here does not show the correct data.*
 
 <img src="img/finalVis_P1.png" width="800" style="display: block; margin-left:auto; margin-right:auto;"/>
 
