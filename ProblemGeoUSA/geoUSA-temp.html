@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="utf-8">
+    <title>GeoUSA</title>
+    
+    <!-- My custom CSS -->
+    <link rel="stylesheet" type="text/css" href="css/geoUSA.css">
+
+    <!-- Google Web Fonts (Lato) -->
+    <link rel='stylesheet' type='text/css' href='http://fonts.googleapis.com/css?family=Lato:300,400,700'>
+
+    <!-- D3 -->
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/topojson.v1.min.js"></script>
+
+</head>
+<body>
+
+    <table>
+        <tr>
+            <td><div id="vis"></div></td>
+            <td><div id="focusVis"></div></td>
+        </tr>
+    </table>
+
+    <!-- 
+    NOTE: I'm using CoffeeScript (http://coffeescript.org/), a cleaner and       
+    less syntactically-dense version of JavaScript, to generate the JavaScript   
+    necessary to work with D3. I store my CoffeeScript in the `coffee` directory,
+    and keep the compiled, human-readable JavaScript in the `js` directory.      
+    Since it contains my comments and formatting, I strongly recommend looking   
+    at my CoffeeScript code. Besides, it's very similar to the JavaScript I would
+    otherwise write; if you know JavaScript, you know CoffeeScript. Thank you    
+    for understanding.
+    -->
+    <script src="js/geoUSA.js"></script>
+
+</body>
+</html>

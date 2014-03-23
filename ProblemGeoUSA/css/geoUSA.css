@@ -1,0 +1,48 @@
+body {
+    font-family: 'Lato', sans-serif;
+}
+#title {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+    padding: 20px;
+    font-size: 1.7em;
+}
+#instructions {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+}
+svg {
+    display: block;
+    margin: 0 auto;
+}
+path {
+    fill: none;
+}
+
+.country {
+    fill: #dffaff;
+    stroke: steelblue;
+}
+.axis line, .axis path {
+    fill: none;
+    stroke: #000;
+    shape-rendering: crispEdges;
+}
+.station {
+    fill: lightgrey;
+    opacity: 0.7;
+}
+.station.hasData {
+    fill: blue;
+    opacity: 1;
+}
+.hourLine {
+    fill: none;
+    stroke: steelblue;
+}
+.brush .extent {
+    fill: gray;
+    opacity: 0.3;
+}
