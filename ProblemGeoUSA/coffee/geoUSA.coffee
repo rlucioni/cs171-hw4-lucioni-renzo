@@ -89,8 +89,13 @@ focusFrame = svg.append("g")
 projection = d3.geo.albersUsa().translate([mapX, mapY])
 path = d3.geo.path().projection(projection)
 
-# GH Illum (lx)
+# Used to scale radiation total to circle radius
+sumScaledown = 3000000
+colors =
+    darkGreen: "#33a02c"
+    lightGray: "#bdbdbd"
 
+# GH Illum (lx)
 drawVisualization = (states, stations) ->
     contextInnerFrame.append("g")
         .attr("id", "states")
@@ -111,34 +116,58 @@ drawVisualization = (states, stations) ->
         .data(stations)
         .enter()
         .append("circle")
-        # [long, lat]
+        .attr("class", "station")
         .attr("cx", (d) -> projection([d.lon, d.lat])[0])
         .attr("cy", (d) -> projection([d.lon, d.lat])[1])
-        .attr("r", 2)
-        .style("fill", "orange")
-
-# loadAggregatedData = () ->
-#     d3.json("../data/aggregated-radiation-data.json", (data) ->
-#         console.log "Loading aggregated data..."
-#         stations = loadStationMetadata()
-#         return stations
-#     )
+        .attr("r", (d) -> return 2 + Math.sqrt(d.sum/sumScaledown))
+        .style("fill", (d) ->
+            if d.sum != 0
+                return colors.darkGreen
+            else
+                return colors.lightGray
+        )
 
 d3.json("../data/us-named.json", (states) ->
     d3.csv("../data/NSRDB_StationsMeta.csv", (metadata) ->
-        stations = []
-        for row in metadata
-            # Ignore stations located outside clipping bounds of Albers USA projection
-            if projection([row['NSRDB_LON(dd)'], row['NSRDB_LAT (dd)']]) == null
-                continue
-            else
-                stations.push(
-                    id: row['USAF']
-                    name: row['STATION']
-                    lon: row['NSRDB_LON(dd)']
-                    lat: row['NSRDB_LAT (dd)']
-                )
+        d3.json("../data/aggregated-radiation-data.json", (aggregated) ->
+            stations = []
+            for row in metadata
+                # Ignore stations located outside clipping bounds of Albers USA projection
+                if projection([row['NSRDB_LON(dd)'], row['NSRDB_LAT (dd)']]) == null
+                    continue
+                else
+                    # Check to see if we have data 
+                    if row['USAF'] of aggregated
+                        stations.push(
+                            'id': row['USAF']
+                            'name': row['STATION']
+                            'lon': row['NSRDB_LON(dd)']
+                            'lat': row['NSRDB_LAT (dd)']
+                            'sum': aggregated[row['USAF'].toString()]['sum']
+                            'hourly': aggregated[row['USAF']]['hourly']
+                        )
+                    else
+                        stations.push(
+                            'id': row['USAF']
+                            'name': row['STATION']
+                            'lon': row['NSRDB_LON(dd)']
+                            'lat': row['NSRDB_LAT (dd)']
+                            'sum': 0
+                            'hourly': []
+                        )
 
-        drawVisualization(states, stations)
+            # Order stations with smaller sums last, so they are layered on top of 
+            # larger circles when being drawn on the map
+            stations.sort((a, b) ->
+                if a.sum > b.sum
+                    return -1
+                else if a.sum < b.sum
+                    return 1
+                else
+                    return 0
+            )
+
+            drawVisualization(states, stations)
+        )
     )
 )
