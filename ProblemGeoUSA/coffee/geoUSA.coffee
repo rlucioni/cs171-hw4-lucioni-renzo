@@ -35,12 +35,47 @@ contextFrameMask = contextOuterFrame.append("g").attr("clip-path", "url(#clip)")
 contextInnerFrame = contextFrameMask.append("g")
     .attr("width", bbContext.width)
     .attr("height", bbContext.height)
+    .style("stroke-width", "1.5px")
+
+# Used for centering map
+mapX = bbContext.width/2
+mapY = bbContext.height/2
+
+# Contains active (i.e., centered) state
+active = d3.select(null)
+
+clicked = (d) ->
+    return reset() if (active.node() == this)
+    active.classed("active", false)
+    active = d3.select(this).classed("active", true)
+
+    bounds = path.bounds(d)
+    dx = bounds[1][0] - bounds[0][0]
+    dy = bounds[1][1] - bounds[0][1]
+    x = (bounds[0][0] + bounds[1][0])/2
+    y = (bounds[0][1] + bounds[1][1])/2
+    scale = 0.9/Math.max(dx/bbContext.width, dy/bbContext.height)
+    translate = [bbContext.width/2 - scale*x, bbContext.height/2 - scale*y]
+
+    contextInnerFrame.transition()
+        .duration(750)
+        .style("stroke-width", "#{1.5/scale}px")
+        .attr("transform", "translate(#{translate})scale(#{scale})")
+
+reset = () ->
+    active.classed("active", false)
+    active = d3.select(null)
+
+    contextInnerFrame.transition()
+        .duration(750)
+        .style("stroke-width", "1.5px")
+        .attr("transform", "")
 
 contextInnerFrame.append("rect")
     .attr("id", "contextBackground")
     .attr("width", bbContext.width)
     .attr("height", bbContext.height)
-    .on("click", clicked);
+    .on("click", reset)
 
 bbFocus =
     x: 0,
@@ -51,37 +86,8 @@ bbFocus =
 focusFrame = svg.append("g")
     .attr("transform", "translate(#{bbFocus.x}, #{bbFocus.y})")
 
-# Used for centering map
-mapX = bbContext.width/2
-mapY = bbContext.height/2
-
 projection = d3.geo.albersUsa().translate([mapX, mapY])
 path = d3.geo.path().projection(projection)
-
-# Indentifies centered state
-centered = null
-clicked = (d) ->
-    [x, y, k] = [0, 0, 0]
-
-    if d and (centered != d)
-        centroid = path.centroid(d)
-        x = centroid[0]
-        y = centroid[1]
-        k = 4
-        centered = d
-    else
-        x = mapX
-        y = mapY
-        k = 1
-        centered = null
-
-    contextInnerFrame.selectAll("path")
-        .classed("active", centered and ((d) -> d == centered))
-
-    contextInnerFrame.transition()
-        .duration(750)
-        .attr("transform", "translate(#{mapX}, #{mapY})scale(#{k})translate(#{-x}, #{-y})")
-        .style("stroke-width", "#{1.5/k}px")
 
 loadStations = () ->
     d3.csv("../data/NSRDB_StationsMeta.csv", (error, data) ->
