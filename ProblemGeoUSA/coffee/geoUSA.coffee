@@ -116,5 +116,15 @@ d3.json("../data/us-named.json", (data) ->
         .attr("id", "state-borders")
         .attr("d", path)
 
+    temp = ["boston"]
+    contextInnerFrame.selectAll("circle")
+        .data(temp)
+        .enter()
+        .append("circle")
+        .attr("cx", projection([-71.060168, 42.360024])[0])
+        .attr("cy", projection([-71.060168, 42.360024])[1])
+        .attr("r", 4)
+        .style("fill", "orange")
+
     # loadStats()
 )

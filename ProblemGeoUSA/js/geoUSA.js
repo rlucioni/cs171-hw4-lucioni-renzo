@@ -86,8 +86,11 @@ loadStats = function() {
 };
 
 d3.json("../data/us-named.json", function(data) {
+  var temp;
   contextInnerFrame.append("g").attr("id", "states").selectAll("path").data(topojson.feature(data, data.objects.states).features).enter().append("path").attr("class", "state").attr("d", path).on("click", clicked);
-  return contextInnerFrame.append("path").datum(topojson.mesh(data, data.objects.states, function(a, b) {
+  contextInnerFrame.append("path").datum(topojson.mesh(data, data.objects.states, function(a, b) {
     return a !== b;
   })).attr("id", "state-borders").attr("d", path);
+  temp = ["boston"];
+  return contextInnerFrame.selectAll("circle").data(temp).enter().append("circle").attr("cx", projection([-71.060168, 42.360024])[0]).attr("cy", projection([-71.060168, 42.360024])[1]).attr("r", 4).style("fill", "orange");
 });
