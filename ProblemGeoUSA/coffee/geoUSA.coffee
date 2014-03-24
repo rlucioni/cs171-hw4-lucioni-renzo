@@ -89,6 +89,8 @@ focusFrame = svg.append("g")
 projection = d3.geo.albersUsa().translate([mapX, mapY])
 path = d3.geo.path().projection(projection)
 
+# GH Illum (lx)
+
 loadStations = () ->
     d3.csv("../data/NSRDB_StationsMeta.csv", (error, data) ->
 
