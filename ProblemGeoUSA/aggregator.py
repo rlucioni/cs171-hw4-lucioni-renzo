@@ -2,9 +2,9 @@ import json
 from datetime import datetime
 
 # In order for this script to work, the original allData2003_2004.json 
-# file must be downloaded and placed in this directory!
-f = open('allData2003_2004.json', 'r')
-g = open('aggregated-radiation-data.json', 'wb')
+# file must be downloaded and placed in the data directory!
+f = open('../data/allData2003_2004.json', 'r')
+g = open('../data/aggregated-radiation-data.json', 'wb')
 
 raw = json.load(f)
 
