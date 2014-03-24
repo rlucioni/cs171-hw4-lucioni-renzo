@@ -18,7 +18,7 @@ svg {
     margin: 0 auto;
 }
 #contextBackground {
-    fill: green;
+    fill: none;
     pointer-events: all;
 }
 #states {
