@@ -91,22 +91,11 @@ path = d3.geo.path().projection(projection)
 
 # GH Illum (lx)
 
-loadStations = () ->
-    d3.csv("../data/NSRDB_StationsMeta.csv", (error, data) ->
-
-    )
-
-loadStats = () ->
-    d3.json("../data/reducedMonthStationHour2003_2004.json", (error, data) ->
-        completeDataSet = data  
-        loadStations()
-    )
-
-d3.json("../data/us-named.json", (data) ->
+drawVisualization = (states, stations) ->
     contextInnerFrame.append("g")
         .attr("id", "states")
         .selectAll("path")
-        .data(topojson.feature(data, data.objects.states).features)
+        .data(topojson.feature(states, states.objects.states).features)
         .enter()
         .append("path")
         .attr("class", "state")
@@ -114,19 +103,42 @@ d3.json("../data/us-named.json", (data) ->
         .on("click", clicked)
 
     contextInnerFrame.append("path")
-        .datum(topojson.mesh(data, data.objects.states, (a, b) -> a != b))
+        .datum(topojson.mesh(states, states.objects.states, (a, b) -> a != b))
         .attr("id", "state-borders")
         .attr("d", path)
 
-    temp = ["boston"]
     contextInnerFrame.selectAll("circle")
-        .data(temp)
+        .data(stations)
         .enter()
         .append("circle")
-        .attr("cx", projection([-71.060168, 42.360024])[0])
-        .attr("cy", projection([-71.060168, 42.360024])[1])
-        .attr("r", 4)
+        # [long, lat]
+        .attr("cx", (d) -> projection([d.lon, d.lat])[0])
+        .attr("cy", (d) -> projection([d.lon, d.lat])[1])
+        .attr("r", 2)
         .style("fill", "orange")
 
-    # loadStats()
+# loadAggregatedData = () ->
+#     d3.json("../data/aggregated-radiation-data.json", (data) ->
+#         console.log "Loading aggregated data..."
+#         stations = loadStationMetadata()
+#         return stations
+#     )
+
+d3.json("../data/us-named.json", (states) ->
+    d3.csv("../data/NSRDB_StationsMeta.csv", (metadata) ->
+        stations = []
+        for row in metadata
+            # Ignore stations located outside clipping bounds of Albers USA projection
+            if projection([row['NSRDB_LON(dd)'], row['NSRDB_LAT (dd)']]) == null
+                continue
+            else
+                stations.push(
+                    id: row['USAF']
+                    name: row['STATION']
+                    lon: row['NSRDB_LON(dd)']
+                    lat: row['NSRDB_LAT (dd)']
+                )
+
+        drawVisualization(states, stations)
+    )
 )
