@@ -5,8 +5,8 @@ margin =
     bottom: 20,
     left:   20
 
-canvasWidth = 1200 - margin.left - margin.right
-canvasHeight = 800 - margin.bottom - margin.top
+canvasWidth = 1100 - margin.left - margin.right
+canvasHeight = 730 - margin.bottom - margin.top
 
 svg = d3.select("#visualization").append("svg")
     .attr("width", canvasWidth + margin.left + margin.right)
@@ -18,7 +18,7 @@ bbContext =
     x: 0,
     y: 0,
     width: canvasWidth,
-    height: 500
+    height: 430
 
 contextOuterFrame = svg.append("g")
     .attr("transform", "translate(#{bbContext.x}, #{bbContext.y})")
@@ -78,24 +78,57 @@ contextInnerFrame.append("rect")
     .on("click", reset)
 
 bbFocus =
-    x: 0,
-    y: 500,
-    width: canvasWidth,
-    height: 300
+    x: 70,
+    y: 450,
+    width: canvasWidth - 70,
+    height: 130
 
 focusFrame = svg.append("g")
     .attr("transform", "translate(#{bbFocus.x}, #{bbFocus.y})")
 
-projection = d3.geo.albersUsa().translate([mapX, mapY])
+focusXScale = d3.scale.linear().range([0, bbFocus.width])
+focusYScale = d3.scale.linear().range([bbFocus.height, 0])
+
+focusXAxis = d3.svg.axis().scale(focusXScale).orient("bottom")
+focusYAxis = d3.svg.axis().scale(focusYScale)
+    .ticks([5])
+    .orient("left")
+
+focusLine = d3.svg.line()
+    .interpolate("linear")
+    .x((d) -> focusXScale(d.hour))
+    .y((d) -> focusYScale(d.ghi))
+
+focusArea = d3.svg.area()
+    .x((d) -> focusXScale(d.hour))
+    .y0(bbFocus.height)
+    .y1((d) -> focusYScale(d.ghi))
+
+projection = d3.geo.albersUsa()
+    .scale(900)
+    .translate([mapX, mapY])
 path = d3.geo.path().projection(projection)
 
 # Used to scale radiation total to circle radius
-sumScaledown = 3000000
-colors =
-    darkGreen: "#33a02c"
-    lightGray: "#bdbdbd"
+sumScaledown = 2000000
+tooltipOffset = 5
+padding =
+    labelX: 5
+    labelY: 7
 
-# GH Illum (lx)
+# Utility function for adding commas as thousands separators
+addCommas = (number) ->
+    number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+
+constructHourlyObject = (hourly) ->
+    dataset = []
+    ix = 0
+    for ghi in hourly
+        dataset.push({'hour': ix, 'ghi': ghi})
+        ix += 1
+
+    return dataset
+
 drawVisualization = (states, stations) ->
     contextInnerFrame.append("g")
         .attr("id", "states")
@@ -116,16 +149,87 @@ drawVisualization = (states, stations) ->
         .data(stations)
         .enter()
         .append("circle")
-        .attr("class", "station")
+        .attr("class", (d) ->
+            if d.sum != 0
+                return "station hasData"
+            else
+                return "station noData"
+        )
         .attr("cx", (d) -> projection([d.lon, d.lat])[0])
         .attr("cy", (d) -> projection([d.lon, d.lat])[1])
         .attr("r", (d) -> return 2 + Math.sqrt(d.sum/sumScaledown))
-        .style("fill", (d) ->
-            if d.sum != 0
-                return colors.darkGreen
-            else
-                return colors.lightGray
-        )
+
+    d3.selectAll(".station.hasData").on("mouseover", (d) ->
+        d3.select(this).style("fill", "red")
+
+        d3.select("#tooltip")
+            .style("left", "#{d3.event.pageX + tooltipOffset}px")
+            .style("top", "#{d3.event.pageY + tooltipOffset}px")
+        d3.select("#name").text("#{d.name}")
+        d3.select("#ghi").text("#{addCommas(d.sum)}")
+        d3.select("#tooltip").classed("hidden", false)
+    )
+
+    d3.selectAll(".station.hasData").on("mouseout", () ->
+        d3.select(this).transition().duration(500).style("fill", "#33a02c")
+        d3.select("#tooltip").classed("hidden", true)
+    )
+
+    # Instantiate focus graph with GHI data for Fallon Naas station, ID 724885
+    fallonNaasHourly = [0, 0, 0, 0, 0, 0, 668600, 2479900, 5069900, 7754400, 10107600, 11763600, 12639300, 12680100, 11826500, 9879300, 7816900, 5185600, 2419600, 523300, 0, 0, 0, 0]
+    focusXScale.domain([0, 23])
+    focusYScale.domain([0, d3.max(fallonNaasHourly)])
+
+    dataset = constructHourlyObject(fallonNaasHourly)
+    
+    focusFrame.append("g").attr("class", "x axis focus")
+        .attr("transform", "translate(0, #{bbFocus.height})")
+        .call(focusXAxis)
+    focusFrame.append("g").attr("class", "y axis focus")
+        .call(focusYAxis)
+    
+    focusFrame.append("text")
+        .attr("class", "x label focus")
+        .attr("text-anchor", "end")
+        .attr("x", bbFocus.width - padding.labelX)
+        .attr("y", bbFocus.height - padding.labelY)
+        .text("Hour")
+    focusFrame.append("text")
+        .attr("class", "y label focus")
+        .attr("text-anchor", "end")
+        .attr("y", padding.labelY)
+        .attr("dy", ".75em")
+        .attr("transform", "rotate(-90)")
+        .text("GHI (lx)")
+
+    focusFrame.append("path")
+        .datum(dataset)
+        .attr("class", "area focus")
+        .attr("d", focusArea)
+
+    focusFrame.append("path")
+        .datum(dataset)
+        .attr("class", "line focus")
+        .attr("d", focusLine)
+
+    updateFocus = (d) ->
+        dataset = constructHourlyObject(d.hourly)
+
+        console.log(d.id, d.name)
+
+        # Reconfigure y-scale domain
+        focusYScale.domain([0, d3.max(d.hourly)])
+        focusFrame.select(".y.axis.focus").call(focusYAxis)
+
+        focusFrame.select(".area.focus")
+            .datum(dataset)
+            .attr("d", focusArea)
+
+        focusFrame.select(".line.focus")
+            .datum(dataset)
+            .attr("d", focusLine)
+
+    d3.selectAll(".station.hasData").on("click", (d) -> updateFocus(d))
 
 d3.json("../data/us-named.json", (states) ->
     d3.csv("../data/NSRDB_StationsMeta.csv", (metadata) ->
