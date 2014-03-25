@@ -133,6 +133,7 @@ constructHourlyObject = (hourly) ->
 
     return dataset
 
+# Helps with the "collapse" part of my "collapse and inflate" animation
 zeroes = constructHourlyObject((0 for [0..23]))
 
 drawVisualization = (states, stations) ->
@@ -157,7 +158,10 @@ drawVisualization = (states, stations) ->
         .append("circle")
         .attr("class", (d) ->
             if d.sum != 0
-                return "station hasData"
+                if d.name == "FALLON NAAS"
+                    return "station hasData fallon"
+                else
+                    return "station hasData"
             else
                 return "station noData"
         )
@@ -165,7 +169,18 @@ drawVisualization = (states, stations) ->
         .attr("cy", (d) -> projection([d.lon, d.lat])[1])
         .attr("r", (d) -> return 2 + Math.sqrt(d.sum/sumScaledown))
 
+    fallonNaasColored = true
     d3.selectAll(".station.hasData").on("mouseover", (d) ->
+        # Return Fallon Naas station to regular coloring
+        if fallonNaasColored
+            d3.select(".station.hasData.fallon")
+                .transition().duration(500)
+                .style("fill", () ->
+                    # Ensures that we only force-color Fallon Naas station green once
+                    fallonNaasColored = false
+                    return "#33a02c"
+                )
+
         d3.select(this).style("fill", "red")
 
         d3.select("#tooltip")
@@ -181,12 +196,10 @@ drawVisualization = (states, stations) ->
         d3.select("#tooltip").classed("hidden", true)
     )
 
-    # Instantiate focus graph with GHI data for Fallon Naas station, ID 724885
+    # Instantiate focus graph with GHI data for Fallon Naas station
     fallonNaasHourly = [0, 0, 0, 0, 0, 0, 668600, 2479900, 5069900, 7754400, 10107600, 11763600, 12639300, 12680100, 11826500, 9879300, 7816900, 5185600, 2419600, 523300, 0, 0, 0, 0]
     focusXScale.domain([0, 23])
     focusYScale.domain([0, d3.max(fallonNaasHourly)])
-
-    dataset = constructHourlyObject(fallonNaasHourly)
     
     focusFrame.append("g").attr("class", "x axis focus")
         .attr("transform", "translate(0, #{bbFocus.height + offset.focusGraph})")
@@ -214,6 +227,8 @@ drawVisualization = (states, stations) ->
         .attr("transform", "rotate(-90)")
         .text("GHI (lx)")
 
+    dataset = constructHourlyObject(fallonNaasHourly)
+
     focusFrame.append("path")
         .datum(dataset)
         .attr("class", "area focus")
@@ -232,16 +247,20 @@ drawVisualization = (states, stations) ->
         .attr("transform", (d) -> "translate(#{focusXScale(d.hour)}, #{focusYScale(d.ghi)})")
         .attr("r", 3)
 
+    # Color Fallon Naas station as if it has been hovered
+    d3.select(".station.hasData.fallon")
+        .style("fill", "red")
+
     updateFocus = (d) ->
         dataset = constructHourlyObject(d.hourly)
 
         # Reconfigure y-scale domain
         focusYScale.domain([0, d3.max(d.hourly)])
         focusFrame.select(".y.axis.focus")
-            .transition().duration(500)
+            .transition().duration(1000)
             .call(focusYAxis)
 
-        # Adjust area
+        # Collapse and inflate area
         focusFrame.select(".area.focus")
             .datum(zeroes)
             .transition().duration(500)
@@ -251,7 +270,7 @@ drawVisualization = (states, stations) ->
             .transition().delay(500).duration(500)
             .attr("d", focusArea)
 
-        # Adjust line
+        # Collapse and inflate line
         focusFrame.select(".line.focus")
             .datum(zeroes)
             .transition().duration(500)
@@ -261,7 +280,7 @@ drawVisualization = (states, stations) ->
             .transition().delay(500).duration(500)
             .attr("d", focusLine)
 
-        # Adjust points
+        # Collapse and inflate points
         focusFrame.selectAll(".point.focus")
             .transition().duration(500)
             .attr("transform", (d) -> "translate(#{focusXScale(d.hour)}, #{bbFocus.height + offset.focusGraph})")

@@ -135,14 +135,18 @@ zeroes = constructHourlyObject((function() {
 })());
 
 drawVisualization = function(states, stations) {
-  var dataset, fallonNaasHourly, updateFocus;
+  var dataset, fallonNaasColored, fallonNaasHourly, updateFocus;
   contextInnerFrame.append("g").attr("id", "states").selectAll("path").data(topojson.feature(states, states.objects.states).features).enter().append("path").attr("class", "state").attr("d", path).on("click", clicked);
   contextInnerFrame.append("path").datum(topojson.mesh(states, states.objects.states, function(a, b) {
     return a !== b;
   })).attr("id", "state-borders").attr("d", path);
   contextInnerFrame.selectAll("circle").data(stations).enter().append("circle").attr("class", function(d) {
     if (d.sum !== 0) {
-      return "station hasData";
+      if (d.name === "FALLON NAAS") {
+        return "station hasData fallon";
+      } else {
+        return "station hasData";
+      }
     } else {
       return "station noData";
     }
@@ -153,7 +157,14 @@ drawVisualization = function(states, stations) {
   }).attr("r", function(d) {
     return 2 + Math.sqrt(d.sum / sumScaledown);
   });
+  fallonNaasColored = true;
   d3.selectAll(".station.hasData").on("mouseover", function(d) {
+    if (fallonNaasColored) {
+      d3.select(".station.hasData.fallon").transition().duration(500).style("fill", function() {
+        fallonNaasColored = false;
+        return "#33a02c";
+      });
+    }
     d3.select(this).style("fill", "red");
     d3.select("#tooltip").style("left", "" + (d3.event.pageX + offset.tooltip) + "px").style("top", "" + (d3.event.pageY + offset.tooltip) + "px");
     d3.select("#name").text("" + d.name);
@@ -167,21 +178,22 @@ drawVisualization = function(states, stations) {
   fallonNaasHourly = [0, 0, 0, 0, 0, 0, 668600, 2479900, 5069900, 7754400, 10107600, 11763600, 12639300, 12680100, 11826500, 9879300, 7816900, 5185600, 2419600, 523300, 0, 0, 0, 0];
   focusXScale.domain([0, 23]);
   focusYScale.domain([0, d3.max(fallonNaasHourly)]);
-  dataset = constructHourlyObject(fallonNaasHourly);
   focusFrame.append("g").attr("class", "x axis focus").attr("transform", "translate(0, " + (bbFocus.height + offset.focusGraph) + ")").call(focusXAxis);
   focusFrame.append("g").attr("class", "y axis focus").call(focusYAxis);
   focusFrame.append("text").attr("class", "title focus").attr("text-anchor", "middle").attr("transform", "translate(" + (bbFocus.width / 2) + ", 0)").text("FALLON NAAS");
   focusFrame.append("text").attr("class", "x label focus").attr("text-anchor", "end").attr("x", bbFocus.width - padding.labelX).attr("y", bbFocus.height + offset.focusGraph - padding.labelY).text("Hour");
   focusFrame.append("text").attr("class", "y label focus").attr("text-anchor", "end").attr("y", padding.labelY).attr("x", -offset.focusGraph).attr("dy", ".75em").attr("transform", "rotate(-90)").text("GHI (lx)");
+  dataset = constructHourlyObject(fallonNaasHourly);
   focusFrame.append("path").datum(dataset).attr("class", "area focus").attr("d", focusArea);
   focusFrame.append("path").datum(dataset).attr("class", "line focus").attr("d", focusLine);
   focusFrame.selectAll(".point.focus").data(dataset).enter().append("circle").attr("class", "point focus").attr("transform", function(d) {
     return "translate(" + (focusXScale(d.hour)) + ", " + (focusYScale(d.ghi)) + ")";
   }).attr("r", 3);
+  d3.select(".station.hasData.fallon").style("fill", "red");
   updateFocus = function(d) {
     dataset = constructHourlyObject(d.hourly);
     focusYScale.domain([0, d3.max(d.hourly)]);
-    focusFrame.select(".y.axis.focus").transition().duration(500).call(focusYAxis);
+    focusFrame.select(".y.axis.focus").transition().duration(1000).call(focusYAxis);
     focusFrame.select(".area.focus").datum(zeroes).transition().duration(500).attr("d", focusArea);
     focusFrame.select(".area.focus").datum(dataset).transition().delay(500).duration(500).attr("d", focusArea);
     focusFrame.select(".line.focus").datum(zeroes).transition().duration(500).attr("d", focusLine);
