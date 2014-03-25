@@ -6,7 +6,7 @@ margin =
     left:   20
 
 canvasWidth = 1100 - margin.left - margin.right
-canvasHeight = 730 - margin.bottom - margin.top
+canvasHeight = 750 - margin.bottom - margin.top
 
 svg = d3.select("#visualization").append("svg")
     .attr("width", canvasWidth + margin.left + margin.right)
@@ -18,7 +18,7 @@ bbContext =
     x: 0,
     y: 0,
     width: canvasWidth,
-    height: 430
+    height: 470
 
 contextOuterFrame = svg.append("g")
     .attr("transform", "translate(#{bbContext.x}, #{bbContext.y})")
@@ -79,15 +79,20 @@ contextInnerFrame.append("rect")
 
 bbFocus =
     x: 70,
-    y: 450,
+    y: 500,
     width: canvasWidth - 70,
-    height: 130
+    height: 180
+
+offset = 
+    focusGraph: 30
+    focusTitle: 200
+    tooltip: 5
 
 focusFrame = svg.append("g")
     .attr("transform", "translate(#{bbFocus.x}, #{bbFocus.y})")
 
 focusXScale = d3.scale.linear().range([0, bbFocus.width])
-focusYScale = d3.scale.linear().range([bbFocus.height, 0])
+focusYScale = d3.scale.linear().range([bbFocus.height + offset.focusGraph, offset.focusGraph])
 
 focusXAxis = d3.svg.axis().scale(focusXScale).orient("bottom")
 focusYAxis = d3.svg.axis().scale(focusYScale)
@@ -101,17 +106,16 @@ focusLine = d3.svg.line()
 
 focusArea = d3.svg.area()
     .x((d) -> focusXScale(d.hour))
-    .y0(bbFocus.height)
+    .y0(bbFocus.height + offset.focusGraph)
     .y1((d) -> focusYScale(d.ghi))
 
 projection = d3.geo.albersUsa()
-    .scale(900)
+    .scale(975)
     .translate([mapX, mapY])
 path = d3.geo.path().projection(projection)
 
 # Used to scale radiation total to circle radius
 sumScaledown = 2000000
-tooltipOffset = 5
 padding =
     labelX: 5
     labelY: 7
@@ -128,6 +132,8 @@ constructHourlyObject = (hourly) ->
         ix += 1
 
     return dataset
+
+zeroes = constructHourlyObject((0 for [0..23]))
 
 drawVisualization = (states, stations) ->
     contextInnerFrame.append("g")
@@ -163,8 +169,8 @@ drawVisualization = (states, stations) ->
         d3.select(this).style("fill", "red")
 
         d3.select("#tooltip")
-            .style("left", "#{d3.event.pageX + tooltipOffset}px")
-            .style("top", "#{d3.event.pageY + tooltipOffset}px")
+            .style("left", "#{d3.event.pageX + offset.tooltip}px")
+            .style("top", "#{d3.event.pageY + offset.tooltip}px")
         d3.select("#name").text("#{d.name}")
         d3.select("#ghi").text("#{addCommas(d.sum)}")
         d3.select("#tooltip").classed("hidden", false)
@@ -183,21 +189,27 @@ drawVisualization = (states, stations) ->
     dataset = constructHourlyObject(fallonNaasHourly)
     
     focusFrame.append("g").attr("class", "x axis focus")
-        .attr("transform", "translate(0, #{bbFocus.height})")
+        .attr("transform", "translate(0, #{bbFocus.height + offset.focusGraph})")
         .call(focusXAxis)
     focusFrame.append("g").attr("class", "y axis focus")
         .call(focusYAxis)
     
     focusFrame.append("text")
+        .attr("class", "title focus")
+        .attr("text-anchor", "middle")
+        .attr("transform", "translate(#{bbFocus.width/2}, 0)")
+        .text("FALLON NAAS")
+    focusFrame.append("text")
         .attr("class", "x label focus")
         .attr("text-anchor", "end")
         .attr("x", bbFocus.width - padding.labelX)
-        .attr("y", bbFocus.height - padding.labelY)
+        .attr("y", bbFocus.height + offset.focusGraph - padding.labelY)
         .text("Hour")
     focusFrame.append("text")
         .attr("class", "y label focus")
         .attr("text-anchor", "end")
         .attr("y", padding.labelY)
+        .attr("x", -offset.focusGraph)
         .attr("dy", ".75em")
         .attr("transform", "rotate(-90)")
         .text("GHI (lx)")
@@ -212,22 +224,64 @@ drawVisualization = (states, stations) ->
         .attr("class", "line focus")
         .attr("d", focusLine)
 
+    focusFrame.selectAll(".point.focus")
+        .data((dataset))
+        .enter()
+        .append("circle")
+        .attr("class", "point focus")
+        .attr("transform", (d) -> "translate(#{focusXScale(d.hour)}, #{focusYScale(d.ghi)})")
+        .attr("r", 3)
+
     updateFocus = (d) ->
         dataset = constructHourlyObject(d.hourly)
 
-        console.log(d.id, d.name)
-
         # Reconfigure y-scale domain
         focusYScale.domain([0, d3.max(d.hourly)])
-        focusFrame.select(".y.axis.focus").call(focusYAxis)
+        focusFrame.select(".y.axis.focus")
+            .transition().duration(500)
+            .call(focusYAxis)
 
+        # Adjust area
+        focusFrame.select(".area.focus")
+            .datum(zeroes)
+            .transition().duration(500)
+            .attr("d", focusArea)
         focusFrame.select(".area.focus")
             .datum(dataset)
+            .transition().delay(500).duration(500)
             .attr("d", focusArea)
 
+        # Adjust line
+        focusFrame.select(".line.focus")
+            .datum(zeroes)
+            .transition().duration(500)
+            .attr("d", focusLine)
         focusFrame.select(".line.focus")
             .datum(dataset)
+            .transition().delay(500).duration(500)
             .attr("d", focusLine)
+
+        # Adjust points
+        focusFrame.selectAll(".point.focus")
+            .transition().duration(500)
+            .attr("transform", (d) -> "translate(#{focusXScale(d.hour)}, #{bbFocus.height + offset.focusGraph})")
+        focusFrame.selectAll(".point.focus")
+            .data((dataset))
+            .transition().delay(500).duration(500)
+            .attr("transform", (d) -> "translate(#{focusXScale(d.hour)}, #{focusYScale(d.ghi)})")
+
+        # Adjust title, sliding old one(s) off screen and sliding on new one
+        focusFrame.selectAll(".title.focus")
+            .transition().duration(1000)
+            .attr("transform", (d) -> "translate(#{bbFocus.width + offset.focusTitle}, 0)")
+            .remove()
+        focusFrame.append("text")
+            .attr("class", "title focus")
+            .attr("text-anchor", "middle")
+            .attr("transform", "translate(#{-offset.focusTitle}, 0)")
+            .text(d.name)
+            .transition().duration(1000)
+            .attr("transform", "translate(#{bbFocus.width/2}, 0)")
 
     d3.selectAll(".station.hasData").on("click", (d) -> updateFocus(d))
 

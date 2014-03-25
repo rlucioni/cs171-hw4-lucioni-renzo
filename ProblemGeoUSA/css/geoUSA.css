@@ -49,6 +49,9 @@ svg {
 #states {
     fill: #b2df8a;
 }
+.state:hover {
+    fill: #ffffb3;
+}
 .state.active {
     fill: #ffd92f;
 }
@@ -73,13 +76,18 @@ svg {
     stroke: black;
 }
 .area {
-    fill: #b2df8a;
+    fill: #33a02c;
     stroke-width: 0;
     opacity: 0.2;
 }
 .line {
-    stroke: #b2df8a;
+    stroke: #33a02c;
     stroke-width: 2px;
     fill: none;
     opacity: 1;
+}
+.point {
+    fill: white;
+    stroke: #33a02c;
+    stroke-width: 2px;
 }
